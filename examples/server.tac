@@ -10,15 +10,14 @@ from kademlia import log
 application = service.Application("kademlia")
 application.setComponent(ILogObserver, log.FileLogObserver(sys.stdout, log.INFO).emit)
 
-print os.path.isfile('cache.pickle')
 
-if os.path.isfile('cache.pickle'):
-    kserver = Server.loadState('cache.pickle2')
+if os.path.isfile('cache.3'):
+    kserver = Server.loadState('cache.pickle3')
 else:
-    kserver = Server()
+    kserver = Server(ksize=3)#id="0"
     kserver.bootstrap([("127.0.0.1", 8468)])
 
-kserver.saveStateRegularly('cache.pickle2', 10)
+kserver.saveStateRegularly('cache.pickle3', 10)
 
 server = internet.UDPServer(8468, kserver.protocol)
 server.setServiceParent(application)

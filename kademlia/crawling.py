@@ -81,12 +81,16 @@ class ValueSpiderCrawl(SpiderCrawl):
         toremove = []
         foundValues = []
         for peerid, response in responses.items():
+
+            # print "&*&*&* peerid: " , str(peerid)
+
             response = RPCFindResponse(response)
             if not response.happened():
                 toremove.append(peerid)
             elif response.hasValue():
                 foundValues.append(response.getValue())
             else:
+                print "###AAASS", str(self.nearest.getNodeById(peerid))
                 peer = self.nearest.getNodeById(peerid)
                 self.nearestWithoutValue.push(peer)
                 self.nearest.push(response.getNodeList())

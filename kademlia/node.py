@@ -9,6 +9,14 @@ class Node:
         self.port = port
         self.long_id = long(id.encode('hex'), 16)
 
+        # try:
+        #     print "############# self.long_id", str(self.long_id)
+        #
+        #     print "############# self.id", str(self.id)
+        # except Exception as e:
+        #     print "############# Exception:", e
+        #     pass
+
     def sameHomeAs(self, node):
         return self.ip == node.ip and self.port == node.port
 
@@ -16,6 +24,9 @@ class Node:
         """
         Get the distance between this node and another.
         """
+
+        #print "DISTANCE TO:", str(self.long_id ^ node.long_id)
+
         return self.long_id ^ node.long_id
 
     def __iter__(self):

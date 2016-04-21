@@ -7,15 +7,18 @@ log.startLogging(sys.stdout)
 
 def done(result):
     print "Key result:", result
-    reactor.stop()
+    #reactor.stop()
 
 def setDone(result, server):
-    server.get("a key").addCallback(done)
+    #server.get("akey").addCallback(done)
+    pass
 
 def bootstrapDone(found, server):
-    server.set("a key", "a value").addCallback(setDone, server)
+    server.set("akey", "Hello!").addCallback(setDone, server)
 
-server = Server()
+
+
+server = Server(id="zefgdassdas")
 server.listen(5456)
 server.bootstrap([("127.0.0.1", 8468)]).addCallback(bootstrapDone, server)
 
