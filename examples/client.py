@@ -1,18 +1,12 @@
 import sys
 import locale
-from twisted.internet import reactor
+from twisted.internet import reactor, task, threads
 from twisted.python import log
-from kademlia.network import Server
+from kademlia.network import Server, QuorumServer
 from threading import Thread
+from twisted.internet.threads import deferToThread
 
 import time
-
-class Menu(Thread):
-    def __init__(self):
-        Thread.__init__(self)
-
-    def start(self):
-        get_command()
 
 log.startLogging(sys.stdout)
 
@@ -24,32 +18,17 @@ def get_done(result, server_ley):
     print ">>Got key result: ",result
     print ">>Got key server_ley: ",server_ley
 
-    get_command()
+    #get_command()
 
 def set_done(result, server):
 
     print ">>set_done:", result
 
-    get_command()
+    #get_command()
 
-def bootstrapDone(found, server):
-    print("INFO: Bootstrap done")
-    #Menu().start()
-    return
-    # get_command()
+def get_input():
 
-def get_command():
-    return
-
-    correct_command_format = False
-
-    while correct_command_format == False:
-
-        correct_command_format = True
-
-        print ">>enter command:"
-
-        command_st = raw_input()#.decode(sys.stdin.encoding or locale.getpreferredencoding(True))
+    def command_result(command_st):
 
         commands = command_st.strip().split()
 
@@ -57,11 +36,13 @@ def get_command():
         #
         #     print "Wrong Command format. format is {(add|get) {key} [value]"
 
-        op = commands[0]
-
-        key = value = None
 
         if(len(commands) > 1):
+
+            op = commands[0]
+
+            key = value = None
+
             key = commands[1]
 
             #key = str(unichr(int(commands[1])))
@@ -73,38 +54,65 @@ def get_command():
             if(len(commands) > 2):
                 value = commands[2].encode('ascii', 'ignore')
 
-        if op == "q":
+            if op == "q":
 
-            reactor.stop()
+                reactor.stop()
 
-        elif op == "set":
+            elif op == "set":
 
-            print "adding key:", key, "-->", value
-            server.set(key, value).addCallback(set_done, server)
+                print "adding key:", key, "-->", value
+                server.set(key, value).addCallback(set_done, server)
 
-        elif op == "get":
+            elif op == "get":
 
-            print "getting key:", key
-            #server.get(key).addCallback(get_done, (server, key))
-            server.get(key).addCallback(get_done, server)
+                print "getting key:", key
+                #server.get(key).addCallback(get_done, (server, key))
+                server.get(key).addCallback(get_done, server)
 
-        else:
+            else:
 
-            correct_command_format = False
+                print "command: ",command_st," is wrong format"
 
-port = 5457
+        get_input()
+
+    def get_command():
+
+        print ">>enter command:"
+
+        return raw_input()
+
+    # deferToThread(get_command).addCallback(command_result)
+    d = threads.deferToThread(get_command)
+    d.addCallback(command_result)
+
+def bootstrapDone(found, server):
+
+    print("INFO: Bootstrap done")
+
+    get_input()
+
+    #lc = task.LoopingCall(get_input)
+    #lc.start(1)
+    #lc.stop()
+
+    #Menu().start()
+    return
+
+port = 5485
 
 if(len(sys.argv) > 1):
 
     port = int(sys.argv[1])
 
-server = Server(ksize=3)#id="1"
+server = QuorumServer(ksize=2)#id="1"
 server.listen(port)
 
 #log.startLogging(open("%s.txt" %port, 'w'))
 
 server.bootstrap([("127.0.0.1", 8468)]).addCallback(bootstrapDone, server)
 print("INFO: Continuing with main thread")
+# reactor.callInThread(aSillyBlockingMethod, "2 seconds have passed")
+
+get_input()
+
 reactor.run()
-
-

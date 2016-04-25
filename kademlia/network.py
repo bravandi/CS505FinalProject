@@ -8,7 +8,7 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import defer, reactor, task
 
 from kademlia.log import Logger
-from kademlia.protocol import KademliaProtocol
+from kademlia.protocol import KademliaProtocol, KademliaQuorumProtocol
 from kademlia.utils import deferredDict, digest
 from kademlia.storage import ForgetfulStorage
 from kademlia.node import Node
@@ -147,60 +147,60 @@ class Server(object):
         spider = ValueSpiderCrawl(self.protocol, node, nearest, self.ksize, self.alpha)
         return spider.find()
 
-    def chat(self, recieverID, value):
-        """
-        Get a key if the network has it.
-
-        Returns:
-            :class:`None` if not found, the value otherwise.
-        """
-
-        # if this node has it, return it
-
-
-        # nodeToFind = Node(id=recieverID)
-        #
-        # currentNode = Node(id=self.node.id)
-        # currentNode.ip = "127.0.0.1"
-        # currentNode.port = 5457
-        #
-        #
-        # kkk = self.protocol.callFindNode(currentNode, nodeToFind)
-
-
-        # dkey = digest(key)
-        # if this node has it, return it
-        # if self.storage.get(dkey) is not None:
-        #     return defer.succeed(self.storage.get(dkey))
-
-        q = self
-
-        def ravi(a=None, b=None, c=None):
-
-            for bucket in q.protocol.router.buckets:
-
-                if(bucket.nodes.get(recieverID) != None):
-
-                    print "FOUND THE NODE BY ID: ", recieverID, "IP is: ", bucket.nodes.get(recieverID)
-
-            print a,b,c, recieverID, q
-
-            pass
-
-
-        print "START CHAAAAT to find node: ", recieverID
-
-        node = Node(id=recieverID)
-
-        nearest = self.protocol.router.findNeighbors(node)
-
-        if len(nearest) == 0:
-            self.log.warning("There are no known neighbors to get key %s" % key)
-            return defer.succeed(None)
-
-        spider = NodeSpiderCrawl(self.protocol, node, nearest, self.ksize, self.alpha)
-
-        return spider.find().addCallback(ravi)
+    # def chat(self, recieverID, value):
+    #     """
+    #     Get a key if the network has it.
+    #
+    #     Returns:
+    #         :class:`None` if not found, the value otherwise.
+    #     """
+    #
+    #     # if this node has it, return it
+    #
+    #
+    #     # nodeToFind = Node(id=recieverID)
+    #     #
+    #     # currentNode = Node(id=self.node.id)
+    #     # currentNode.ip = "127.0.0.1"
+    #     # currentNode.port = 5457
+    #     #
+    #     #
+    #     # kkk = self.protocol.callFindNode(currentNode, nodeToFind)
+    #
+    #
+    #     # dkey = digest(key)
+    #     # if this node has it, return it
+    #     # if self.storage.get(dkey) is not None:
+    #     #     return defer.succeed(self.storage.get(dkey))
+    #
+    #     q = self
+    #
+    #     def ravi(a=None, b=None, c=None):
+    #
+    #         for bucket in q.protocol.router.buckets:
+    #
+    #             if(bucket.nodes.get(recieverID) != None):
+    #
+    #                 print "FOUND THE NODE BY ID: ", recieverID, "IP is: ", bucket.nodes.get(recieverID)
+    #
+    #         print a,b,c, recieverID, q
+    #
+    #         pass
+    #
+    #
+    #     print "START CHAAAAT to find node: ", recieverID
+    #
+    #     node = Node(id=recieverID)
+    #
+    #     nearest = self.protocol.router.findNeighbors(node)
+    #
+    #     if len(nearest) == 0:
+    #         self.log.warning("There are no known neighbors to get key %s" % key)
+    #         return defer.succeed(None)
+    #
+    #     spider = NodeSpiderCrawl(self.protocol, node, nearest, self.ksize, self.alpha)
+    #
+    #     return spider.find().addCallback(ravi)
 
     def set(self, key, value):
         """
@@ -277,3 +277,69 @@ class Server(object):
         loop = LoopingCall(self.saveState, fname)
         loop.start(frequency)
         return loop
+
+class QuorumServer(Server):
+    """
+    High level view of a node instance.  This is the object that should be created
+    to start listening as an active node on the network.
+    """
+
+    def __init__(self, ksize=20, alpha=3, id=None, storage=None):
+        Server.__init__(self, ksize, alpha, id, storage)
+        self.protocol = KademliaQuorumProtocol(self.node, self.storage, ksize)
+
+
+    def get(self, key):
+        """
+        Get a key if the network has it.
+
+        Returns:
+            :class:`None` if not found, the value otherwise.
+        """
+        dkey = digest(key)
+        # if this node has it, return it
+        if self.storage.get(dkey) is not None:
+            return defer.succeed(self.storage.get(dkey))
+        node = Node(dkey)
+        nearest = self.protocol.router.findNeighbors(node)
+        if len(nearest) == 0:
+            self.log.warning("There are no known neighbors to get key %s" % key)
+            return defer.succeed(None)
+        return self.protocol.callFindKey(dkey, nearest)
+
+    def set(self, key, value):
+
+        """
+        Set the given key to the given value in the network.
+        Get a key if the network has it.
+
+        Returns:
+            :class:`None` if not found, the value otherwise.
+        """
+        dkey = digest(key)
+
+        node = Node(dkey)
+        nearest = self.protocol.router.findNeighbors(node)
+        if len(nearest) == 0:
+            self.log.warning("There are no known neighbors to get key %s" % key)
+            return defer.succeed(None)
+
+        return self.protocol.callStore(dkey, value, nearest)
+
+    def initiateQuorum(self, node):
+        """
+        Args:
+            node: is the id that is being looked up
+
+        Returns:
+            signed message from Quorum
+        """
+
+        neighbors = self.protocol.router.findNeighbors(self.node)
+        for neighbor in neighbors:
+            # Send message to neighbors for signing
+            msg = ""
+        return msg
+
+
+

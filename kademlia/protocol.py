@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 from twisted.internet import defer
 
@@ -8,7 +9,7 @@ from kademlia.node import Node
 from kademlia.routing import RoutingTable
 from kademlia.log import Logger
 from kademlia.utils import digest
-
+from base64 import b64encode
 
 class KademliaProtocol(RPCProtocol):
     def __init__(self, sourceNode, storage, ksize):
@@ -16,7 +17,17 @@ class KademliaProtocol(RPCProtocol):
         self.router = RoutingTable(self, ksize, sourceNode)
         self.storage = storage
         self.sourceNode = sourceNode
+
         self.log = Logger(system=self)
+
+    # def _sendResponse(self, response, msgID, address):
+    #     RPCProtocol._sendResponse(self, response, msgID, address)
+    #     self.log.info("sending message with message id" + b64encode(msgID))
+    #     pass
+
+    # def datagramReceived(self, datagram, address):
+    #     RPCProtocol.datagramReceived(self, datagram, address)
+    #     self.log.info("datagramReceived message id" + str(b64encode(datagram[1:21])))
 
     def getRefreshIDs(self):
         """
@@ -50,7 +61,6 @@ class KademliaProtocol(RPCProtocol):
         return map(tuple, self.router.findNeighbors(node, exclude=source))
 
     def rpc_find_value(self, sender, nodeid, key):
-
         source = Node(nodeid, sender[0], sender[1])
         self.welcomeIfNewNode(source)
         value = self.storage.get(key, None)
@@ -118,3 +128,110 @@ class KademliaProtocol(RPCProtocol):
             self.log.debug("no response from %s, removing from router" % node)
             self.router.removeContact(node)
         return result
+
+
+class LookupInfo:
+    def __init__(self):
+        self.counter = Counter()
+        self.deferred = defer.Deferred()
+
+
+class KademliaQuorumProtocol(KademliaProtocol):
+
+    def __init__(self, sourceNode, storage, ksize):
+        KademliaProtocol.__init__(self, sourceNode, storage, ksize)
+        self.lookup = {}
+
+    def callStore(self, key, value, peers):
+
+        for peer in peers:
+
+            self.forward_request(
+                (peer.ip, peer.port),
+                self.sourceNode.id,
+                key,
+                {"type":"set", "value": value})
+
+        return defer.succeed(True)
+
+
+    def callFindKey(self, key, peers):
+
+        self.lookup[key] = LookupInfo()
+        #sender = (self.sourceNode.ip, self.sourceNode.port)
+
+        self.log.info("Find Key peers: %s" %peers)
+
+        for peer in peers:
+            self.forward_request(
+                (peer.ip, peer.port),
+                self.sourceNode.id,
+                key,
+                {"type":"get"})
+
+        return self.lookup[key].deferred
+
+    def rpc_forward_request(self, sender, nodeid, key, request):
+        # Forward request to lookup key quorum
+
+        if(request["type"] == "get" and "sender" not in request):
+
+            request["sender"] = sender
+
+        self.log.info("Received request %s from %s looking for %s" %(request["type"], sender, key))
+        source = Node(nodeid, sender[0], sender[1])
+        self.welcomeIfNewNode(source)
+        neighbors = self.router.findNeighbors(Node(key))
+        # Termination condition
+
+        self.log.info("Forward Request neighbors: %s" %neighbors)
+
+        if self.terminateForward(key, neighbors) == False:
+
+            # Replace neighbors with k/2 + 1 instead
+            for n in neighbors:
+                self.forward_request((n.ip,  n.port),
+                                     self.sourceNode.id, key, request)
+        else:
+
+            if(request["type"] == "set"):
+
+                value = request["value"]
+                self.log.debug("Storing value for key %s and value %s" %(key, value))
+                self.storage[key] = value
+
+            elif(request["type"] == "get"):
+
+                origin = request["sender"]
+                value = self.storage.get(key)
+                self.log.debug("Sending RPC found key to %s for key %s" %(origin, key))
+                self.found_key(origin, key, value)
+
+    def rpc_found_key(self, sender, key, value):
+
+        self.log.info("Found key : " + key + " value : " + str(value) + " sender :" + str(sender))
+
+        if(key in self.lookup):
+            counter = self.lookup[key].counter
+            counter[value] += 1
+            if ( counter.most_common(1)[0][1] > self.router.ksize * 2 / 3 ):
+                self.log.info("Found key : " + key + " value : " + str(value))
+
+    def terminateForward(self, key, neighbors):
+        """
+        Args:
+            key: key that is being looked up
+            neighbors: list of k closest neighbors
+
+        Returns:
+            if key is closest to quorum nodes than k closest
+            neighbors
+        """
+
+        k = Node(key)
+        min_distance = min([n.distanceTo(k) for n in neighbors])
+        min_quorum_distance =  min([n.distanceTo(k) for n in self.sourceNode.getQuorums()])
+
+        self.log.info("min_distance: %s min_quorum_distance: %s" %(min_distance, min_quorum_distance))
+
+        return min_distance <= min_quorum_distance

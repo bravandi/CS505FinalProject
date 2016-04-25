@@ -29,6 +29,15 @@ class Node:
 
         return self.long_id ^ node.long_id
 
+    def getQuorums(self):
+
+        """
+        Returns: A list of node id's whose quorum self is part of
+        """
+
+        return [self]
+
+
     def __iter__(self):
         """
         Enables use of Node as a tuple - i.e., tuple(node) works.
@@ -124,3 +133,4 @@ class NodeHeap(object):
 
     def getUncontacted(self):
         return [n for n in self if n.id not in self.contacted]
+

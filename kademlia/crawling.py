@@ -148,6 +148,7 @@ class NodeSpiderCrawl(SpiderCrawl):
         return self.find()
 
 
+
 class RPCFindResponse(object):
     def __init__(self, response):
         """
