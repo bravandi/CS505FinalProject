@@ -1,4 +1,4 @@
-*.pickle
+*.pickle*
 *.pid
 _trial_temp
 apidoc
@@ -8,3 +8,5 @@ dist
 kademlia.egg-info
 docs/_build
 .idea/*
+.dropbox*
+logs/*
