@@ -301,6 +301,7 @@ class QuorumServer(Server):
         if self.storage.get(dkey) is not None:
             return defer.succeed(self.storage.get(dkey))
         node = Node(dkey)
+        #the quorum
         nearest = self.protocol.router.findNeighbors(node)
         if len(nearest) == 0:
             self.log.warning("There are no known neighbors to get key %s" % key)

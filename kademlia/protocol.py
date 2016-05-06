@@ -178,7 +178,9 @@ class KademliaQuorumProtocol(KademliaProtocol):
 
             request["sender"] = sender
 
-        self.log.info("Received request %s from %s looking for %s" %(request["type"], sender, key))
+        # self.log.info("Received request %s from %s looking for %s" %(request["type"], sender, key))
+        self.log.info("Received Forward request %s from %s looking for a key" %(request["type"], sender))
+
         source = Node(nodeid, sender[0], sender[1])
         self.welcomeIfNewNode(source)
         neighbors = self.router.findNeighbors(Node(key))
@@ -197,25 +199,28 @@ class KademliaQuorumProtocol(KademliaProtocol):
             if(request["type"] == "set"):
 
                 value = request["value"]
-                self.log.debug("Storing value for key %s and value %s" %(key, value))
+
+                self.log.debug("Storing value for key %s and value %s" %("[ENCODED KEY]", value))
                 self.storage[key] = value
 
             elif(request["type"] == "get"):
 
                 origin = request["sender"]
                 value = self.storage.get(key)
-                self.log.debug("Sending RPC found key to %s for key %s" %(origin, key))
+                self.log.debug("Sending RPC Found Key to " + str(origin) + " with found value or NULL")
                 self.found_key(origin, key, value)
 
     def rpc_found_key(self, sender, key, value):
 
-        self.log.info("Found key : " + key + " value : " + str(value) + " sender :" + str(sender))
+        self.log.info("Found key, value :" + str(value) + " sender :" + str(sender))
 
         if(key in self.lookup):
             counter = self.lookup[key].counter
             counter[value] += 1
+
             if ( counter.most_common(1)[0][1] > self.router.ksize * 2 / 3 ):
-                self.log.info("Found key : " + key + " value : " + str(value))
+
+                self.log.info("Majority accepted value :" + str(value))
 
     def terminateForward(self, key, neighbors):
         """
