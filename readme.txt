@@ -9,6 +9,7 @@ Installation
         pip install rpcudp
         (from https://github.com/bmuller/rpcudp)
 
+    Running python setup.py with sufficient privileges will install the dependencies
 
 Usage
 
