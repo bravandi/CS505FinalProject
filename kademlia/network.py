@@ -147,61 +147,6 @@ class Server(object):
         spider = ValueSpiderCrawl(self.protocol, node, nearest, self.ksize, self.alpha)
         return spider.find()
 
-    # def chat(self, recieverID, value):
-    #     """
-    #     Get a key if the network has it.
-    #
-    #     Returns:
-    #         :class:`None` if not found, the value otherwise.
-    #     """
-    #
-    #     # if this node has it, return it
-    #
-    #
-    #     # nodeToFind = Node(id=recieverID)
-    #     #
-    #     # currentNode = Node(id=self.node.id)
-    #     # currentNode.ip = "127.0.0.1"
-    #     # currentNode.port = 5457
-    #     #
-    #     #
-    #     # kkk = self.protocol.callFindNode(currentNode, nodeToFind)
-    #
-    #
-    #     # dkey = digest(key)
-    #     # if this node has it, return it
-    #     # if self.storage.get(dkey) is not None:
-    #     #     return defer.succeed(self.storage.get(dkey))
-    #
-    #     q = self
-    #
-    #     def ravi(a=None, b=None, c=None):
-    #
-    #         for bucket in q.protocol.router.buckets:
-    #
-    #             if(bucket.nodes.get(recieverID) != None):
-    #
-    #                 print "FOUND THE NODE BY ID: ", recieverID, "IP is: ", bucket.nodes.get(recieverID)
-    #
-    #         print a,b,c, recieverID, q
-    #
-    #         pass
-    #
-    #
-    #     print "START CHAAAAT to find node: ", recieverID
-    #
-    #     node = Node(id=recieverID)
-    #
-    #     nearest = self.protocol.router.findNeighbors(node)
-    #
-    #     if len(nearest) == 0:
-    #         self.log.warning("There are no known neighbors to get key %s" % key)
-    #         return defer.succeed(None)
-    #
-    #     spider = NodeSpiderCrawl(self.protocol, node, nearest, self.ksize, self.alpha)
-    #
-    #     return spider.find().addCallback(ravi)
-
     def set(self, key, value):
         """
         Set the given key to the given value in the network.

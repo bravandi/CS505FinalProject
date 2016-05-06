@@ -20,15 +20,6 @@ class KademliaProtocol(RPCProtocol):
 
         self.log = Logger(system=self)
 
-    # def _sendResponse(self, response, msgID, address):
-    #     RPCProtocol._sendResponse(self, response, msgID, address)
-    #     self.log.info("sending message with message id" + b64encode(msgID))
-    #     pass
-
-    # def datagramReceived(self, datagram, address):
-    #     RPCProtocol.datagramReceived(self, datagram, address)
-    #     self.log.info("datagramReceived message id" + str(b64encode(datagram[1:21])))
-
     def getRefreshIDs(self):
         """
         Get ids to search for to keep old buckets up to date.
